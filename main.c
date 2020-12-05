@@ -31,11 +31,11 @@ int main(){
         perror("ftruncate error\n");
         return -1;
     }
-    if (ftruncate(mutex1, sizeof(pthread_mutex_t))){
+    if (ftruncate(mutex1, sizeof(pthread_mutex_t)) == -1){
         perror("ftruncate error\n");
         return -1;
     }
-    if (ftruncate(mutex2, sizeof(pthread_mutex_t))){
+    if (ftruncate(mutex2, sizeof(pthread_mutex_t)) == -1){
         perror("ftruncate error\n");
         return -1;
     }
@@ -45,17 +45,33 @@ int main(){
     *mmfDataSize = -1;
     pthread_mutex_t* mutex = (pthread_mutex_t *) mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex1, 0);
     pthread_mutex_t* secondMutex = (pthread_mutex_t *) mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex2, 0);
+    if (mmfData == MAP_FAILED || mmfDataSize == MAP_FAILED || mutex == MAP_FAILED || mutex2 == MAP_FAILED){
+        perror("mmap error\n");
+        return -1;
+    }
     pthread_mutexattr_t mutexAttribute;
-    pthread_mutexattr_init(&mutexAttribute);
-    pthread_mutexattr_setpshared(&mutexAttribute, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(mutex, &mutexAttribute);
-    pthread_mutex_init(secondMutex, &mutexAttribute);
+    if (pthread_mutexattr_init(&mutexAttribute) != 0){
+        perror("pthread_mutexattr_init error\n");
+        return -1;
+    }
+    if (pthread_mutexattr_setpshared(&mutexAttribute, PTHREAD_PROCESS_SHARED) != 0){
+        perror("pthread_mutexattr_setpshared error\n");
+        return -1;
+    }
+    if (pthread_mutex_init(mutex, &mutexAttribute) != 0){
+        perror("pthread_mutex_init error\n");
+        return -1;
+    }
+    if (pthread_mutex_init(secondMutex, &mutexAttribute) != 0){
+        perror("pthread_mutex_init error\n");
+        return -1;
+    }
 
-    if (pthread_mutex_lock(secondMutex)){
+    if (pthread_mutex_lock(secondMutex) != 0){
         perror("pthread_mutex_lock error\n");
         return -1;
     }
-    if (pthread_mutex_lock(mutex)){
+    if (pthread_mutex_lock(mutex) != 0){
         perror("pthread_mutex_lock error\n");
         return -1;
     }
@@ -85,7 +101,7 @@ int main(){
                     perror("pthread_mutex_unlock error\n");
                     return -1;
                 }
-                if (pthread_mutex_lock(secondMutex)){
+                if (pthread_mutex_lock(secondMutex) != 0){
                     perror("pthread_mutex_lock error\n");
                     return -1;
                 }
@@ -95,10 +111,28 @@ int main(){
         }
         printf("retard4\n");
         *mmfDataSize = -2;
-        if (pthread_mutex_unlock(mutex)){
+        if (pthread_mutex_unlock(mutex) != 0){
             perror("pthread_mutex_unlock error\n");
             return -1;
         }
     }
+
+    if (shm_unlink(pipeName) != 0){
+        perror("shm_unlink error\n");
+        return -1;
+    }
+    if (shm_unlink(pipe1SizeName) != 0){
+        perror("shm_unlink error\n");
+        return -1;
+    }
+    if (shm_unlink(mutexName) != 0){
+        perror("shm_unlink error\n");
+        return -1;
+    }
+    if (shm_unlink(mutex2Name) != 0){
+        perror("shm_unlink error\n");
+        return -1;
+    }
+
     return 0;
 }

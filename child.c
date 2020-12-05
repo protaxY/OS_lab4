@@ -8,7 +8,7 @@
 int main(int argc, char* argv[]){
     FILE *file = fopen(argv[1], "a");
     if (file == NULL){
-        printf("fopen error\n");
+        perror("fopen error\n");
         return -1;
     }
 
@@ -16,17 +16,24 @@ int main(int argc, char* argv[]){
     int mutex2 = shm_open(argv[3], O_RDWR | O_CREAT, S_IRWXU);
     int pipe1 = shm_open(argv[4], O_RDWR | O_CREAT, S_IRWXU);
     int pipe1Size = shm_open(argv[5], O_RDWR | O_CREAT, S_IRWXU);
+    if (pipe1 == -1 || pipe1Size == -1 || mutex1 == -1 || mutex2 == -1){
+        perror("shm_open\n");
+        return -1;
+    }
 
     pthread_mutex_t* mutex = (pthread_mutex_t *) mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex1, 0);
     pthread_mutex_t* secondMutex = (pthread_mutex_t *) mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex2, 0);
     float* mmfData = (float *) mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, pipe1, 0);
     int* mmfDataSize = (int *) mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, pipe1Size, 0);
+    if (mmfData == MAP_FAILED || mmfDataSize == MAP_FAILED || mutex == MAP_FAILED || secondMutex == MAP_FAILED){
+        perror("mmap error\n");
+        return -1;
+    }
 
     while (*mmfDataSize != -2){
-        printf("hi\n");
-        pthread_mutex_lock(mutex);
-        while (*mmfDataSize == -1){
-            pthread_cond_wait(cond, mutex);
+        if (pthread_mutex_lock(mutex) != 0){
+            perror("pthread_mutex_lock error\n");
+            return -1;
         }
         if (*mmfDataSize == -2){
             break;
@@ -37,9 +44,11 @@ int main(int argc, char* argv[]){
         }
         fprintf(file, "%f\n", result);
         *mmfDataSize = -1;
-        pthread_mutex_unlock(secondMutex);
+        if (pthread_mutex_unlock(secondMutex) != 0){
+            perror("pthread_mutex_unlock error\n");
+            return -1;
+        }
     }
-    printf("ne loh");
     fclose(file);
     return 0;
 }
