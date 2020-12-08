@@ -49,6 +49,7 @@ int main(int argc, char* argv[]){
             return -1;
         }
     }
+
     fclose(file);
     return 0;
 }

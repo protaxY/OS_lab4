@@ -8,7 +8,10 @@
 int main(){
     printf("enter file name:");
     char filename[256];
-    scanf("%s", filename);
+    if (scanf("%s", filename) <= 0){
+        printf("input format error\n");
+        return -1;
+    }
 
     char pipeName[] = "pipe";
     char mutexName[] = "mutex";
@@ -45,7 +48,7 @@ int main(){
     *mmfDataSize = -1;
     pthread_mutex_t* mutex = (pthread_mutex_t *) mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex1, 0);
     pthread_mutex_t* secondMutex = (pthread_mutex_t *) mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex2, 0);
-    if (mmfData == MAP_FAILED || mmfDataSize == MAP_FAILED || mutex == MAP_FAILED || mutex2 == MAP_FAILED){
+    if (mmfData == MAP_FAILED || mmfDataSize == MAP_FAILED || mutex == MAP_FAILED || secondMutex == MAP_FAILED){
         perror("mmap error\n");
         return -1;
     }
@@ -79,7 +82,7 @@ int main(){
     if (id == -1){
         perror("fork error\n");
         return -1;
-    } else if (id == 0){
+    } else if (id == 0) {
         char* argv[] = {"child", filename, mutexName, mutex2Name, pipeName, pipe1SizeName, (char *)NULL};
         if (execv("child", argv) == -1){
             perror("execl error\n");
